@@ -55,6 +55,18 @@ DURATION_PATTERNS = [
 
 CONFIDENCE_THRESHOLD = 0.4  # Lowered from 0.5 to catch more results
 
+_EASYOCR_READER = None
+
+
+def get_easyocr_reader():
+    """Lazily initialize and cache the EasyOCR reader singleton to avoid expensive reloads."""
+    global _EASYOCR_READER
+    if _EASYOCR_READER is None:
+        import easyocr
+        _EASYOCR_READER = easyocr.Reader(['en'], gpu=False, verbose=False)
+        logger.info('[OCR] EasyOCR reader initialized')
+    return _EASYOCR_READER
+
 
 def preprocess_image_variants(image_path: str) -> list[str]:
     """
@@ -74,29 +86,10 @@ def preprocess_image_variants(image_path: str) -> list[str]:
         h, w = img.shape[:2]
 
         variants = [image_path]  # original always first
-        # Keep variants beside the upload and isolate each request.  Using a
-        # shared system filename caused concurrent OCR requests to overwrite
-        # one another and also leaked generated files.
-        tmp_dir = tempfile.mkdtemp(prefix='ocr-', dir=str(Path(image_path).parent))
+        # Keep variants in a dedicated temporary directory and clean up after use.
+        tmp_dir = tempfile.mkdtemp(prefix='ocr-')
 
-        # Phone uploads frequently carry a sideways handwritten page.  OCR
-        # does not reliably infer orientation, so include both quarter turns.
-        for angle, rotated in ((90, cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)),
-                               (270, cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE))):
-            p = os.path.join(tmp_dir, f'ocr_rotated_{angle}.png')
-            cv2.imwrite(p, rotated)
-            variants.append(p)
-
-        # Upscale small images (helps OCR on low-res prescriptions)
-        if max(h, w) < 1000:
-            scale = 1500 / max(h, w)
-            upscaled = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
-            p = os.path.join(tmp_dir, 'ocr_upscaled.png')
-            cv2.imwrite(p, upscaled)
-            variants.append(p)
-            logger.info('[OCR] Created upscaled variant: %s', p)
-
-        # Grayscale + contrast enhancement
+        # Grayscale + contrast enhancement (CLAHE)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         enhanced = clahe.apply(gray)
@@ -116,6 +109,23 @@ def preprocess_image_variants(image_path: str) -> list[str]:
         variants.append(p)
         logger.info('[OCR] Created adaptive-threshold variant')
 
+        # Upscale small images (helps OCR on low-res prescriptions)
+        if max(h, w) < 1000:
+            scale = 1500 / max(h, w)
+            upscaled = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+            p = os.path.join(tmp_dir, 'ocr_upscaled.png')
+            cv2.imwrite(p, upscaled)
+            variants.append(p)
+            logger.info('[OCR] Created upscaled variant: %s', p)
+
+        # Phone uploads frequently carry a sideways handwritten page. Include
+        # rotations last so they are only tested if upright variants fail.
+        for angle, rotated in ((90, cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)),
+                               (270, cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE))):
+            p = os.path.join(tmp_dir, f'ocr_rotated_{angle}.png')
+            cv2.imwrite(p, rotated)
+            variants.append(p)
+
         return variants
 
     except Exception as e:
@@ -125,12 +135,17 @@ def preprocess_image_variants(image_path: str) -> list[str]:
 
 def _cleanup_variants(paths: list[str], original: str) -> None:
     """Remove request-scoped OCR variants without touching the upload."""
+    cleaned_dirs = set()
     for path in paths:
         if path == original:
             continue
         try:
-            shutil.rmtree(Path(path).parent)
-            break
+            parent = Path(path).parent
+            if parent.name.startswith('ocr-') and parent not in cleaned_dirs:
+                cleaned_dirs.add(parent)
+                shutil.rmtree(parent, ignore_errors=True)
+            elif os.path.exists(path):
+                os.remove(path)
         except OSError:
             continue
 
@@ -138,9 +153,7 @@ def _cleanup_variants(paths: list[str], original: str) -> None:
 def extract_text_easyocr(image_path: str, use_variants: bool = True) -> tuple[str, float]:
     """Run EasyOCR on image (and variants); returns (text, avg_confidence)."""
     try:
-        import easyocr
-        reader = easyocr.Reader(['en'], gpu=False, verbose=False)
-        logger.info('[OCR] EasyOCR reader initialized')
+        reader = get_easyocr_reader()
 
         paths_to_try = preprocess_image_variants(image_path) if use_variants else [image_path]
 
@@ -150,6 +163,11 @@ def extract_text_easyocr(image_path: str, use_variants: bool = True) -> tuple[st
 
         try:
             for path in paths_to_try:
+                # If upright variants have already identified medicines, skip expensive rotations
+                if best_score[0] > 0 and any(rot in path for rot in ('ocr_rotated_90', 'ocr_rotated_270')):
+                    logger.info('[OCR] Upright variant already identified medicines; skipping rotation %s', path)
+                    continue
+
                 try:
                     results = reader.readtext(path)
                     logger.info('[OCR] EasyOCR on %s: %d blocks', path, len(results))
@@ -173,6 +191,17 @@ def extract_text_easyocr(image_path: str, use_variants: bool = True) -> tuple[st
                         best_score = score
                         best_text = full_text
                         best_conf = avg_conf
+
+                    # If all extracted medicines are fully populated with name, dosage,
+                    # frequency, and duration with good confidence, we have a complete
+                    # extraction and can safely skip subsequent variants.
+                    if (
+                        len(parsed) >= 1
+                        and all(not item.get('needs_verification') for item in parsed)
+                        and avg_conf >= CONFIDENCE_THRESHOLD
+                    ):
+                        logger.info('[OCR] Variant %s yielded complete extraction; skipping remaining variants', path)
+                        break
                 except Exception as ve:
                     logger.warning('[OCR] EasyOCR failed on variant %s: %s', path, ve)
         finally:
@@ -200,12 +229,20 @@ def extract_text_tesseract(image_path: str) -> tuple[str, float]:
             r'C:\Program Files\Tesseract-OCR\tesseract.exe',
             r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe',
             r'C:\Users\HP\AppData\Local\Programs\Tesseract-OCR\tesseract.exe',
+            r'C:\Users\HP\AppData\Local\Tesseract-OCR\tesseract.exe',
         ]
+        found = False
         for p in tess_paths:
             if os.path.exists(p):
                 pytesseract.pytesseract.tesseract_cmd = p
                 logger.info('[OCR] Found Tesseract at: %s', p)
+                found = True
                 break
+        if not found:
+            which_tess = shutil.which('tesseract')
+            if which_tess:
+                pytesseract.pytesseract.tesseract_cmd = which_tess
+                logger.info('[OCR] Found Tesseract in PATH at: %s', which_tess)
 
         img = Image.open(image_path).convert('RGB')
         data = pytesseract.image_to_data(img, output_type=pytesseract.Output.DICT)
@@ -231,8 +268,8 @@ def clean_ocr_text(text: str) -> str:
     text = re.sub(r'\b0([a-zA-Z])', r'O\1', text)  # 0 before letters → O
     text = re.sub(r'([a-zA-Z])0\b', r'\1O', text)  # 0 after letters → O
     # Common OCR confusion in dosage units; require a numeric prefix so that
-    # ordinary words containing "ma" are never changed.
-    text = re.sub(r'(\d+(?:\.\d+)?\s*)ma\b', r'\1mg', text, flags=re.IGNORECASE)
+    # ordinary words containing "ma", "mJ", or "rng" are never changed.
+    text = re.sub(r'(\d+(?:\.\d+)?\s*)(?:ma|mJ|rng)\b', r'\1mg', text, flags=re.IGNORECASE)
     # Some engines split "for 3 days" into "for 3 2" around a line.  Repair
     # only this strongly constrained prescription-duration shape.
     text = re.sub(r'\bfor\s+(\d+)\s+\d+\b', r'for \1 days', text, flags=re.IGNORECASE)
