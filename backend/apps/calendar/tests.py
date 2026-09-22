@@ -1,3 +1,4 @@
+import json
 from unittest.mock import Mock, patch
 
 from django.core import signing
@@ -17,7 +18,7 @@ class ScheduleMedicationTests(TestCase):
         )
         prescription = Prescription.objects.create(user=self.user)
         self.medicine = Medicine.objects.create(
-            prescription=prescription, name='Vitamin D', frequency='daily',
+            prescription=prescription, name='Vitamin D', frequency='daily', duration='3 days',
         )
         GoogleCalendarCredential.objects.create(
             user=self.user,
@@ -44,7 +45,10 @@ class ScheduleMedicationTests(TestCase):
         self.assertEqual(second.status_code, 200)
         self.assertEqual(MedicationCalendarEvent.objects.count(), 1)
         body = events.insert.call_args.kwargs['body']
-        self.assertEqual(body['recurrence'], ['RRULE:FREQ=DAILY'])
+        self.assertRegex(
+            body['recurrence'][0],
+            r'^RRULE:FREQ=DAILY;UNTIL=\d{8}T\d{6}Z$',
+        )
 
     def test_status_endpoint_returns_connected_state_and_scheduled_ids(self):
         # Connected with no events
@@ -68,6 +72,48 @@ class ScheduleMedicationTests(TestCase):
         self.assertTrue(response.data['connected'])
         self.assertEqual(response.data['scheduled_medicine_ids'], [self.medicine.id])
 
+    @patch('apps.calendar.views._valid_credentials')
+    @patch('apps.calendar.views._calendar_service')
+    def test_paracetamol_schedule_uses_finite_duration_and_selected_time(
+        self, service_factory, credentials,
+    ):
+        events = Mock()
+        events.insert.return_value.execute.return_value = {'id': 'paracetamol-event'}
+        service_factory.return_value.events.return_value = events
+        medicine = Medicine.objects.create(
+            prescription=self.medicine.prescription,
+            name='Paracetamol',
+            dosage='500 mg',
+            frequency='twice daily',
+            duration='3 days',
+        )
+
+        response = self.client.post('/api/calendar/schedule/', {
+            'medicine_id': medicine.id,
+            'start_time': '2026-09-23T08:30:00',
+            'timezone': 'Asia/Kolkata',
+            'frequency': medicine.frequency,
+        }, format='json')
+
+        self.assertEqual(response.status_code, 201)
+        body = events.insert.call_args.kwargs['body']
+        self.assertEqual(body['start']['dateTime'], '2026-09-23T08:30:00+05:30')
+        self.assertRegex(
+            body['recurrence'][0],
+            r'^RRULE:FREQ=DAILY;UNTIL=20260925T030000Z$',
+        )
+
+    def test_schedule_rejects_missing_duration(self):
+        self.medicine.duration = ''
+        self.medicine.save(update_fields=['duration'])
+        response = self.client.post('/api/calendar/schedule/', {
+            'medicine_id': self.medicine.id,
+            'start_time': '2026-09-23T08:00:00',
+            'timezone': 'Asia/Kolkata',
+        }, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('duration', response.data['error'].lower())
+
     def test_disconnect_deletes_credentials_without_deleting_events(self):
         # Create event
         MedicationCalendarEvent.objects.create(
@@ -89,6 +135,7 @@ class ScheduleMedicationTests(TestCase):
         # Status now reports disconnected
         status_res = self.client.get('/api/calendar/status/')
         self.assertFalse(status_res.data['connected'])
+
 
     @patch('apps.calendar.views._oauth_flow')
     def test_authorize_endpoint(self, mock_flow_func):
@@ -173,3 +220,54 @@ class ScheduleMedicationTests(TestCase):
         self.assertFalse(GoogleCalendarCredential.objects.filter(user=self.user).exists())
         self.assertEqual(MedicationCalendarEvent.objects.filter(user=self.user).count(), 2)
 
+
+@override_settings(
+    GOOGLE_CLIENT_ID='client',
+    GOOGLE_CLIENT_SECRET='secret',
+    FRONTEND_URL='http://localhost:5173',
+)
+class CallbackTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email='callback@example.com', username='callback', password='password123',
+        )
+        self.client = APIClient()
+
+    def test_invalid_callback_state_returns_json_error(self):
+        response = self.client.get(
+            '/api/calendar/oauth/callback/?state=invalid',
+            HTTP_ACCEPT='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {'error': 'Invalid or expired OAuth state.'})
+
+    def test_cancelled_callback_returns_clear_json_error(self):
+        response = self.client.get(
+            '/api/calendar/oauth/callback/?error=access_denied',
+            HTTP_ACCEPT='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, {'error': 'Google authorization was cancelled.'})
+
+    @patch('apps.calendar.views._oauth_flow')
+    def test_successful_callback_stores_credentials_and_redirects_to_prescription(self, oauth_flow):
+        state = signing.dumps({'user_id': self.user.pk}, salt='google-calendar-oauth')
+        flow = Mock()
+        flow.credentials.to_json.return_value = json.dumps({
+            'token': 'access-token',
+            'refresh_token': 'refresh-token',
+            'token_uri': 'https://oauth2.googleapis.com/token',
+            'client_id': 'client',
+            'client_secret': 'secret',
+            'scopes': ['https://www.googleapis.com/auth/calendar.events'],
+        })
+        oauth_flow.return_value = flow
+
+        response = self.client.get(
+            f'/api/calendar/oauth/callback/?state={state}&code=authorized',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.get('Location'))
+        self.assertContains(response, '/prescription?calendar_connected=true')
+        self.assertTrue(GoogleCalendarCredential.objects.filter(user=self.user).exists())

@@ -42,6 +42,7 @@ const confidenceStyle = (value = 0) => (
 );
 
 const display = (value, fallback = 'Not extracted') => value || fallback;
+const CALENDAR_STATE_KEY = 'healthintel-prescription-calendar-state';
 
 function reminderCount(frequency = '') {
   const value = frequency.toLowerCase();
@@ -113,6 +114,24 @@ export default function PrescriptionReader() {
   }, [preview]);
 
   useEffect(() => {
+    try {
+      const savedState = JSON.parse(sessionStorage.getItem(CALENDAR_STATE_KEY) || 'null');
+      if (savedState?.result) setResult(savedState.result);
+      if (savedState?.selectedTimes && typeof savedState.selectedTimes === 'object') {
+        setSelectedTimes(savedState.selectedTimes);
+      }
+    } catch {
+      sessionStorage.removeItem(CALENDAR_STATE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (result) {
+      sessionStorage.setItem(CALENDAR_STATE_KEY, JSON.stringify({ result, selectedTimes }));
+    }
+  }, [result, selectedTimes]);
+
+  useEffect(() => {
     let mounted = true;
     const checkCalendarStatus = async () => {
       try {
@@ -145,9 +164,11 @@ export default function PrescriptionReader() {
     const handleMessage = (event) => {
       if (event.data?.type === 'GOOGLE_CALENDAR_CONNECTED') {
         setCalendarConnected(true);
+        setCalendarLoading(false);
         toast.success('Google Calendar Connected');
         checkCalendarStatus();
       } else if (event.data?.type === 'GOOGLE_CALENDAR_ERROR') {
+        setCalendarLoading(false);
         toast.error(event.data.error || 'Google Calendar connection failed');
       }
     };
@@ -171,6 +192,7 @@ export default function PrescriptionReader() {
     setResult(null);
     setExplanation('');
     setSelectedTimes({});
+    sessionStorage.removeItem(CALENDAR_STATE_KEY);
     setError('');
   }, []);
 
@@ -189,6 +211,7 @@ export default function PrescriptionReader() {
     try {
       const { data } = await prescriptionAPI.analyze(file);
       setResult(data);
+      sessionStorage.setItem(CALENDAR_STATE_KEY, JSON.stringify({ result: data, selectedTimes: {} }));
       if (data.explanation) {
         setExplanation(data.explanation);
       }
@@ -228,6 +251,7 @@ export default function PrescriptionReader() {
     setResult(null);
     setExplanation('');
     setSelectedTimes({});
+    sessionStorage.removeItem(CALENDAR_STATE_KEY);
     setError('');
   };
 
@@ -238,14 +262,26 @@ export default function PrescriptionReader() {
       if (data.authorization_url) {
         const popup = window.open(data.authorization_url, 'google_oauth', 'width=600,height=700');
         if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+          // Popup was blocked — save state then do a full redirect
           window.location.assign(data.authorization_url);
+        } else {
+          // Monitor the popup: if it closes without sending a postMessage, let the user know
+          const pollTimer = setInterval(() => {
+            if (popup.closed) {
+              clearInterval(pollTimer);
+              // Give any in-flight postMessage 500 ms to land before showing cancellation
+              setTimeout(() => {
+                setCalendarLoading(false);
+              }, 500);
+            }
+          }, 400);
         }
       }
     } catch (err) {
       toast.error(err.response?.data?.error || 'Unable to connect Google Calendar.');
-    } finally {
       setCalendarLoading(false);
     }
+    // Loading state is cleared either by postMessage handler or popup-close poll
   };
 
   const handleDisconnectCalendar = async () => {
@@ -276,6 +312,10 @@ export default function PrescriptionReader() {
       handleConnectCalendar();
       return;
     }
+    if (!medicine.duration) {
+      toast.error(`${medicine.name}: prescription duration is required to create a calendar reminder. Please verify the original prescription.`);
+      return;
+    }
     if (schedulingInProgress[medicine.id] || scheduledMedicineIds.has(medicine.id)) {
       return;
     }
@@ -299,7 +339,15 @@ export default function PrescriptionReader() {
       setScheduledMedicineIds((prev) => new Set([...prev, medicine.id]));
       toast.success(`✓ Added ${medicine.name} to Google Calendar`);
     } catch (err) {
-      toast.error(err.response?.data?.error || `Unable to schedule reminder for ${medicine.name}.`);
+      const status = err.response?.status;
+      const message = err.response?.data?.error;
+      if (status === 401) {
+        // Token expired — backend deleted the credential; reflect that in the UI
+        setCalendarConnected(false);
+        toast.error('Google Calendar authorization expired. Please reconnect.');
+      } else {
+        toast.error(message || `Unable to schedule reminder for ${medicine.name}.`);
+      }
     } finally {
       setSchedulingInProgress((prev) => ({ ...prev, [medicine.id]: false }));
     }

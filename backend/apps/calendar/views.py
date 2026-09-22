@@ -1,8 +1,14 @@
 """Authenticated Google Calendar medication reminder endpoints."""
 import hashlib
+import html as html_lib
 import json
+import logging
+import os
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
+from urllib.parse import urlencode
+
+logger = logging.getLogger(__name__)
 
 from django.conf import settings
 from django.core import signing
@@ -42,6 +48,20 @@ def _credentials(credential):
     from google.oauth2.credentials import Credentials
     data = signing.loads(credential.token_data, salt='google-calendar-token')
     return Credentials.from_authorized_user_info(data, SCOPES)
+
+
+def _valid_credentials(credential):
+    """Load and refresh the user's Google credentials, persisting new tokens."""
+    credentials = _credentials(credential)
+    if getattr(credentials, 'expired', False) is True and credentials.refresh_token:
+        from google.auth.transport.requests import Request
+        credentials.refresh(Request())
+        credential.token_data = signing.dumps(
+            json.loads(credentials.to_json()),
+            salt='google-calendar-token',
+        )
+        credential.save(update_fields=['token_data', 'updated_at'])
+    return credentials
 
 
 class AuthorizeView(APIView):
@@ -84,8 +104,14 @@ class CallbackView(APIView):
 
     def get(self, request):
         frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
+        # Allow token exchange over http://localhost in local dev
+        if settings.DEBUG:
+            os.environ.setdefault('OAUTHLIB_INSECURE_TRANSPORT', '1')
         error_msg = None
         try:
+            if request.query_params.get('error'):
+                error_msg = 'Google authorization was cancelled.'
+                raise ValueError(error_msg)
             payload = signing.loads(request.query_params.get('state', ''),
                                     salt='google-calendar-oauth', max_age=600)
             flow = _oauth_flow(request.query_params.get('state'))
@@ -97,7 +123,10 @@ class CallbackView(APIView):
             )
         except (signing.BadSignature, KeyError):
             error_msg = 'Invalid or expired OAuth state.'
-        except Exception:
+        except ValueError as exc:
+            error_msg = str(exc)
+        except Exception as exc:
+            logger.exception('Google Calendar OAuth callback failed: %s', exc)
             error_msg = 'Google authorization failed.'
 
         # Check if client explicitly prefers JSON (e.g. programmatic tests)
@@ -108,18 +137,23 @@ class CallbackView(APIView):
             return Response({'message': 'Google Calendar connected.'})
 
         if error_msg:
-            redirect_url = f"{frontend_url}/prescriptions?calendar_error={error_msg}"
+            redirect_url = (
+                f"{frontend_url}/prescription?"
+                f"{urlencode({'calendar_error': error_msg})}"
+            )
+            safe_error = html_lib.escape(error_msg)
+            js_error = json.dumps(error_msg)
             html = f"""<!DOCTYPE html>
 <html>
 <head><title>Authorization Failed</title></head>
 <body style="font-family: sans-serif; text-align: center; padding: 40px; background: #0f172a; color: #f87171;">
     <h2>Google Calendar Authorization Failed</h2>
-    <p>{error_msg}</p>
+    <p>{safe_error}</p>
     <p>Returning to HealthIntel...</p>
     <script>
         try {{
             if (window.opener) {{
-                window.opener.postMessage({{ type: 'GOOGLE_CALENDAR_ERROR', error: '{error_msg}' }}, '*');
+                window.opener.postMessage({{ type: 'GOOGLE_CALENDAR_ERROR', error: {js_error} }}, '*');
                 setTimeout(() => window.close(), 1500);
             }} else {{
                 window.location.href = '{redirect_url}';
@@ -132,7 +166,7 @@ class CallbackView(APIView):
 </html>"""
             return HttpResponse(html, content_type='text/html', status=400)
 
-        redirect_url = f"{frontend_url}/prescriptions?calendar_connected=true"
+        redirect_url = f"{frontend_url}/prescription?calendar_connected=true"
         html = f"""<!DOCTYPE html>
 <html>
 <head><title>Google Calendar Connected</title></head>
@@ -191,13 +225,17 @@ class ScheduleMedicationView(APIView):
             frequency = str(request.data.get('frequency') or medicine.frequency or 'daily').lower()
             freq = 'WEEKLY' if 'week' in frequency else 'DAILY'
             duration = _duration_days(medicine.duration)
+            if not duration:
+                return Response(
+                    {'error': 'Medication duration is required to create a finite reminder.'},
+                    status=400,
+                )
             recurrence = f'RRULE:FREQ={freq}'
-            if duration:
-                end_date = (start + timedelta(days=duration - 1)).date()
-                recurrence += f';UNTIL={end_date.strftime("%Y%m%d")}T235959Z'
+            final_occurrence = start + timedelta(days=duration - 1)
+            recurrence += f';UNTIL={final_occurrence.astimezone(dt_timezone.utc).strftime("%Y%m%dT%H%M%SZ")}'
             fingerprint_data = f'{medicine.pk}|{start.isoformat()}|{tz_name}|{freq}'
             fingerprint = hashlib.sha256(fingerprint_data.encode()).hexdigest()
-            service = _calendar_service(_credentials(credential))
+            service = _calendar_service(_valid_credentials(credential))
             event = {
                 'summary': f'Medication: {medicine.name}',
                 'description': (
@@ -234,7 +272,21 @@ class ScheduleMedicationView(APIView):
             return Response({'error': 'start_time is required.'}, status=400)
         except ValueError:
             return Response({'error': 'start_time or timezone is invalid.'}, status=400)
-        except Exception:
+        except Exception as exc:
+            from google.auth.exceptions import RefreshError
+            try:
+                from googleapiclient.errors import HttpError
+            except ImportError:
+                HttpError = ()
+            http_status = getattr(getattr(exc, 'resp', None), 'status', None)
+            if isinstance(exc, RefreshError) or (
+                HttpError and isinstance(exc, HttpError) and http_status == 401
+            ):
+                GoogleCalendarCredential.objects.filter(pk=credential.pk).delete()
+                return Response(
+                    {'error': 'Google Calendar authorization expired. Please reconnect Google Calendar.'},
+                    status=401,
+                )
             return Response({'error': 'Unable to create Google Calendar reminder.'}, status=502)
 
 

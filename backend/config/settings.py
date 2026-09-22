@@ -186,6 +186,14 @@ CELERY_RESULT_EXTENDED = True
 GOOGLE_CLIENT_ID = env('GOOGLE_CLIENT_ID', default='')
 GOOGLE_CLIENT_SECRET = env('GOOGLE_CLIENT_SECRET', default='')
 GOOGLE_REDIRECT_URI = env('GOOGLE_REDIRECT_URI', default='http://localhost:8000/api/calendar/oauth/callback/')
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173')
+
+# Allow OAuth 2 token exchange over plain HTTP in local development.
+# oauthlib enforces HTTPS for the redirect URI; setting this env-var
+# disables that check when DEBUG=True. Never set in production.
+if DEBUG:
+    import os as _os
+    _os.environ.setdefault('OAUTHLIB_INSECURE_TRANSPORT', '1')
 
 # ==========================================
 # LLM Configuration
