@@ -1,0 +1,120 @@
+services:
+  # ==========================================
+  # PostgreSQL Database
+  # ==========================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: healthintel_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-healthintel_db}
+      POSTGRES_USER: ${POSTGRES_USER:-healthintel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-healthintel_pass}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-healthintel}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================
+  # Redis Cache / Message Broker
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: healthintel_redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================
+  # Django Backend
+  # ==========================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/Dockerfile.backend
+    container_name: healthintel_backend
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             python manage.py ingest_documents &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120"
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-docker-secret-key}
+      - DEBUG=${DEBUG:-False}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-healthintel}:${POSTGRES_PASSWORD:-healthintel_pass}@postgres:5432/${POSTGRES_DB:-healthintel_db}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - ALLOWED_HOSTS=backend,localhost,127.0.0.1
+      - CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://frontend:3000
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - LLM_PROVIDER=${LLM_PROVIDER:-gemini}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-1.5-flash}
+    volumes:
+      - ./backend:/app
+      - media_data:/app/media
+      - faiss_data:/app/ml/models_store
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ==========================================
+  # Celery Worker
+  # ==========================================
+  celery:
+    build:
+      context: ./backend
+      dockerfile: ../docker/Dockerfile.backend
+    container_name: healthintel_celery
+    command: celery -A config worker --loglevel=info --concurrency=2
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-docker-secret-key}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-healthintel}:${POSTGRES_PASSWORD:-healthintel_pass}@postgres:5432/${POSTGRES_DB:-healthintel_db}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - LLM_PROVIDER=${LLM_PROVIDER:-gemini}
+    volumes:
+      - ./backend:/app
+      - media_data:/app/media
+      - faiss_data:/app/ml/models_store
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ==========================================
+  # React Frontend
+  # ==========================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/Dockerfile.frontend
+    container_name: healthintel_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=http://localhost:8000
+
+volumes:
+  postgres_data:
+  media_data:
+  faiss_data:

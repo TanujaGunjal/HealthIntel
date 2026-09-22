@@ -1,0 +1,131 @@
+MEDICATION REFERENCE AND CLINICAL PHARMACOLOGY GUIDE
+Source: Clinical Pharmacology & Pharmacotherapy Reference (Educational Use)
+
+PARACETAMOL (ACETAMINOPHEN)
+Paracetamol (also known internationally as acetaminophen) is an analgesic and antipyretic agent indicated for the treatment of mild to moderate pain and the reduction of fever. It is widely used for headaches, musculoskeletal pain, sore throats, dental pain, fever associated with common colds, and osteoarthritis discomfort.
+
+Mechanism and Action:
+Paracetamol acts primarily in the central nervous system to inhibit prostaglandin synthesis and modulates descending serotonergic pain pathways. It provides effective pain relief and fever control without significant peripheral anti-inflammatory effects or gastrointestinal ulceration.
+
+Prescription Instructions and Administration:
+- Standard adult dosage: 500 mg to 1000 mg per dose, administered orally every 4 to 6 hours as needed or as directed by a physician.
+- Administration timing: Can be taken with or without food. Tablets should be taken with water.
+- Prescribed regimens (such as 500 mg twice daily or three times daily) should be strictly adhered to without exceeding maximum daily limits.
+
+Precautions and Warnings:
+- Maximum daily dosage for adults is 4,000 mg (4 grams) within a 24-hour period. In patients with compromised liver function or lower body weight, the safe daily limit is often 2,000 to 3,000 mg.
+- Severe hepatotoxicity (acute liver damage or failure) can occur with intentional or accidental overdose.
+- Avoid concurrent use of other over-the-counter or prescription cough, cold, or pain medications containing paracetamol/acetaminophen.
+- Use with extreme caution in patients with chronic liver disease, chronic alcohol consumption, or severe renal impairment.
+- This educational information does not alter physician orders or recommend changes to prescribed therapy.
+
+
+CETIRIZINE
+Cetirizine is a second-generation H1-receptor antagonist (antihistamine) indicated for the symptomatic relief of seasonal allergic rhinitis, perennial allergic rhinitis, allergic conjunctivitis, and chronic idiopathic urticaria (hives and skin itching).
+
+Mechanism and Action:
+Cetirizine selectively inhibits peripheral histamine H1 receptors. By blocking the physiological effects of histamine released during allergic responses, it rapidly reduces sneezing, rhinorrhea (runny nose), nasal pruritus, itchy watery eyes, and histamine-induced cutaneous wheals. Because it has minimal penetration into the central nervous system compared to first-generation antihistamines, it causes substantially less sedation.
+
+Prescription Instructions and Administration:
+- Standard adult dosage: 10 mg once daily (or 5 mg twice daily as clinically indicated).
+- Administration timing: Commonly recommended to be taken once daily in the evening or at night before bedtime, because mild somnolence may occur in sensitive individuals. Can be taken with or without meals.
+- Swallow tablets whole with water.
+
+Precautions and Warnings:
+- Although classified as non-sedating, mild drowsiness or fatigue can occur. Caution is advised when operating machinery or driving until individual response is determined.
+- Concomitant use with alcohol or other central nervous system depressants should be avoided as it may produce additive impairment of alertness.
+- Dose adjustment is recommended in patients with moderate to severe renal impairment.
+- Inform your healthcare provider if allergy symptoms persist or if adverse effects develop.
+
+
+PANTOPRAZOLE
+Pantoprazole is a substituted benzimidazole proton pump inhibitor (PPI) indicated for the short-term and maintenance treatment of gastroesophageal reflux disease (GERD), erosive esophagitis, gastric and duodenal peptic ulcers, Zollinger-Ellison syndrome, and for gastroprotection to prevent acid-related mucosal damage in patients taking ulcerogenic medications.
+
+Mechanism and Action:
+Pantoprazole suppresses gastric acid secretion by irreversibly binding to and inhibiting the hydrogen-potassium adenosine triphosphatase enzyme system (H+/K+ ATPase, the gastric proton pump) on the secretory surface of gastric parietal cells. This blocks the final common pathway of gastric acid production, substantially elevating intragastric pH and promoting mucosal healing.
+
+Prescription Instructions and Administration:
+- Standard adult dosage: 20 mg to 40 mg once daily (or up to 80 mg daily in hypersecretory conditions).
+- Administration timing: Should be taken once daily in the morning, approximately 30 to 60 minutes before breakfast (or the first meal of the day). Food activates proton pumps, making morning pre-meal administration the most effective timing for acid suppression.
+- Delayed-release tablets must be swallowed whole with water; do not crush, chew, or break tablets.
+
+Precautions and Warnings:
+- Long-term continuous proton pump inhibitor therapy (exceeding months to years) has been associated with hypomagnesemia, decreased vitamin B12 absorption, increased risk of Clostridioides difficile-associated diarrhea, and small increases in bone fracture risk.
+- Pantoprazole may alter the absorption of pH-dependent medications (such as ketoconazole, iron salts, or protease inhibitors).
+- Seek prompt medical attention for red-flag symptoms such as persistent difficulty swallowing, gastrointestinal bleeding, or unexplained weight loss.
+- Always maintain the prescribed duration and timing as established by the physician.
+
+
+AMOXICILLIN
+Amoxicillin is a moderate-spectrum beta-lactam aminopenicillin antibiotic indicated for the treatment of susceptible bacterial infections of the upper and lower respiratory tract, ear, nose, throat (such as sinusitis, pharyngitis, otitis media), urinary tract, skin, and soft tissue.
+
+Mechanism and Action:
+Amoxicillin is bactericidal; it inhibits bacterial cell wall biosynthesis by binding to penicillin-binding proteins (PBPs), leading to lysis and destruction of multiplying bacteria.
+
+Prescription Instructions and Administration:
+- Standard adult dosage: 250 mg to 500 mg every 8 hours, or 500 mg to 875 mg every 12 hours, depending on the severity of the infection.
+- Administration timing: Can be taken with or without food. Taking with meals may reduce gastrointestinal upset.
+- It is critical to complete the full prescribed course of antibiotic therapy even if symptoms improve early, to avoid treatment failure and antibiotic resistance.
+
+Precautions and Warnings:
+- Contraindicated in patients with a history of severe hypersensitivity or anaphylactic reactions to penicillins or cephalosporins.
+- Common adverse effects include mild diarrhea, nausea, and rash. Discontinue and seek urgent care if severe watery or bloody diarrhea, hives, facial swelling, or breathing difficulty occurs.
+
+
+IBUPROFEN
+Ibuprofen is a nonsteroidal anti-inflammatory drug (NSAID) indicated for the relief of mild to moderate pain, inflammation, swelling, fever, and dysmenorrhea.
+
+Mechanism and Action:
+Ibuprofen reversibly inhibits cyclooxygenase-1 (COX-1) and cyclooxygenase-2 (COX-2) enzymes, reducing prostaglandin synthesis from arachidonic acid.
+
+Prescription Instructions and Administration:
+- Standard adult dosage: 200 mg to 400 mg every 4 to 6 hours as needed (maximum 1,200 mg/day for over-the-counter use, up to 2,400 mg/day under medical supervision).
+- Administration timing: Always take with food or a glass of milk to minimize gastric irritation.
+
+Precautions and Warnings:
+- Increased risk of gastrointestinal ulceration, bleeding, or perforation, especially in the elderly or with prolonged use.
+- Can increase cardiovascular thrombotic risk and fluid retention; use with caution in patients with hypertension, heart failure, or chronic kidney disease.
+
+
+AZITHROMYCIN
+Azithromycin is a macrolide antibiotic indicated for mild to moderate infections including acute bacterial exacerbations of chronic bronchitis, community-acquired pneumonia, sinusitis, and uncomplicated skin infections.
+
+Mechanism and Action:
+Binds reversibly to the 50S ribosomal subunit of susceptible microorganisms, inhibiting protein synthesis.
+
+Prescription Instructions and Administration:
+- Standard adult regimen: 500 mg on day 1 followed by 250 mg once daily on days 2 through 5.
+- Administration timing: May be taken with or without food. Swallow tablets whole with water.
+
+Precautions and Warnings:
+- Can cause prolongation of the QT interval; caution in patients with cardiac arrhythmia risks.
+- Complete full prescribed course.
+
+
+METFORMIN
+Metformin is a biguanide oral antihyperglycemic medication indicated as first-line pharmacotherapy for type 2 diabetes mellitus.
+
+Mechanism and Action:
+Decreases hepatic glucose production, decreases intestinal absorption of glucose, and improves insulin sensitivity by increasing peripheral glucose uptake and utilization.
+
+Prescription Instructions and Administration:
+- Standard adult dosage: 500 mg to 1,000 mg once or twice daily.
+- Administration timing: Must be taken with meals to reduce gastrointestinal side effects (nausea, diarrhea).
+
+Precautions and Warnings:
+- Rare but serious risk of lactic acidosis; contraindicated in severe renal impairment (eGFR < 30 mL/min).
+
+
+ATORVASTATIN
+Atorvastatin is an HMG-CoA reductase inhibitor (statin) indicated for the treatment of hypercholesterolemia and the reduction of cardiovascular disease risk.
+
+Mechanism and Action:
+Competitively inhibits HMG-CoA reductase, the rate-limiting enzyme in cholesterol biosynthesis, increasing hepatic LDL receptors and accelerating LDL clearance.
+
+Prescription Instructions and Administration:
+- Standard adult dosage: 10 mg to 80 mg once daily.
+- Administration timing: May be taken at any time of day, with or without food, but should be taken at roughly the same time each day (often evening).
+
+Precautions and Warnings:
+- Monitor for unexplained muscle pain, tenderness, or weakness (myopathy/rhabdomyolysis).
+- Periodic liver enzyme assessment is recommended if clinically indicated.

@@ -1,0 +1,475 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+
+  body {
+    @apply bg-surface text-slate-100 font-sans antialiased min-h-screen;
+    background-color: #0f172a;
+    color: #f1f5f9;
+  }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-surface; }
+  ::-webkit-scrollbar-thumb { @apply bg-surface-border rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-slate-500; }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-500 text-white font-semibold px-6 py-3 rounded-xl
+           transition-all duration-200 shadow-glow hover:shadow-glow hover:scale-[1.02]
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
+  }
+
+  .btn-secondary {
+    @apply bg-surface-card border border-surface-border hover:border-primary-500 text-slate-200
+           font-semibold px-6 py-3 rounded-xl transition-all duration-200
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-accent {
+    @apply bg-accent-500 hover:bg-accent-400 text-white font-semibold px-6 py-3 rounded-xl
+           transition-all duration-200 shadow-glow-accent hover:scale-[1.02]
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .card {
+    @apply bg-surface-card border border-surface-border rounded-2xl p-6 shadow-card
+           transition-all duration-200;
+  }
+
+  .card-hover {
+    @apply card hover:border-primary-500/50 hover:shadow-glow cursor-pointer;
+  }
+
+  .input {
+    @apply w-full bg-surface border border-surface-border rounded-xl px-4 py-3 text-slate-100
+           placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500
+           focus:border-transparent transition-all duration-200
+           disabled:opacity-70 disabled:cursor-not-allowed disabled:bg-surface/50;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-slate-200 mb-2;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold;
+  }
+
+  .badge-primary {
+    @apply badge bg-primary-500/20 text-primary-300 border border-primary-500/30;
+  }
+
+  .badge-accent {
+    @apply badge bg-accent-500/20 text-accent-400 border border-accent-500/30;
+  }
+
+  .badge-warning {
+    @apply badge bg-amber-500/20 text-amber-400 border border-amber-500/30;
+  }
+
+  .badge-danger {
+    @apply badge bg-danger-500/20 text-danger-400 border border-danger-500/30;
+  }
+
+  .section-title {
+    @apply text-2xl font-bold text-slate-100 mb-1;
+  }
+
+  .section-subtitle {
+    @apply text-slate-400 text-sm mb-6;
+  }
+
+  .agent-step {
+    @apply flex items-center gap-3 p-3 rounded-lg border border-surface-border bg-surface
+           transition-all duration-300;
+  }
+
+  .agent-step.completed {
+    @apply border-accent-500/40 bg-accent-500/5;
+  }
+
+  .agent-step.running {
+    @apply border-primary-500/40 bg-primary-500/5;
+  }
+
+  .prose-medical {
+    @apply text-slate-300 leading-relaxed;
+  }
+
+  .prose-medical h2 { @apply text-xl font-bold text-slate-100 mt-4 mb-2; }
+  .prose-medical h3 { @apply text-lg font-semibold text-slate-200 mt-3 mb-1; }
+  .prose-medical strong { @apply text-slate-100 font-semibold; }
+  .prose-medical ul { @apply list-disc list-inside space-y-1 my-2; }
+  .prose-medical p { @apply mb-3; }
+
+  .disclaimer-box {
+    @apply border border-amber-500/30 bg-amber-500/5 rounded-xl p-4 text-amber-300 text-sm;
+  }
+
+  .urgent-box {
+    @apply border border-danger-500/30 bg-danger-500/5 rounded-xl p-4 text-danger-300 text-sm;
+  }
+
+  .nav-link {
+    @apply text-slate-400 hover:text-slate-100 transition-colors duration-200 text-sm font-medium;
+  }
+
+  .nav-link.active {
+    @apply text-primary-400;
+  }
+}
+
+/* Keep the prescription workflow consistent with the light clinical pages. */
+.prescription-page .card {
+  background: #fff;
+  border-color: #e2e8f0;
+  border-radius: 1.5rem;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+}
+
+.prescription-page .bg-surface,
+.prescription-page .bg-surface-card,
+.prescription-page .bg-surface-elevated\/40 {
+  background-color: #f8fafc;
+}
+
+.prescription-page .text-slate-100,
+.prescription-page .text-slate-200 {
+  color: #0f172a;
+}
+
+.prescription-page .text-slate-300 {
+  color: #334155;
+}
+
+.prescription-page .text-slate-400,
+.prescription-page .text-slate-500 {
+  color: #64748b;
+}
+
+.prescription-page .border-surface-border,
+.prescription-page .border-surface-border\/60 {
+  border-color: #e2e8f0;
+}
+
+.prescription-page .bg-amber-500\/10 {
+  background-color: #fffbeb;
+}
+
+.prescription-page .text-amber-300 {
+  color: #b45309;
+}
+
+.prescription-page .text-danger-300,
+.prescription-page .text-danger-400 {
+  color: #dc2626;
+}
+
+.prescription-page .bg-danger-500\/10 {
+  background-color: #fef2f2;
+}
+
+.prescription-page .btn-secondary {
+  background: #fff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.prescription-page .btn-secondary:hover {
+  border-color: #10b981;
+  background: #ecfdf5;
+}
+
+.prescription-page .btn-accent {
+  background: #059669;
+  box-shadow: 0 8px 18px rgba(5, 150, 105, 0.2);
+}
+
+.prescription-page .btn-accent:hover {
+  background: #047857;
+}
+
+.prescription-page input[type='time'] {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.prescription-page .section-title {
+  color: #0f172a;
+  font-size: 2.25rem;
+  letter-spacing: -0.04em;
+}
+
+.prescription-page .section-subtitle {
+  color: #64748b;
+}
+
+/* Shared light clinical surface used by the authenticated product pages. */
+.clinical-theme {
+  background: #fff;
+  color: #0f172a;
+}
+
+.clinical-theme .card {
+  background: #fff;
+  border-color: #e2e8f0;
+  border-radius: 1.5rem;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+}
+
+.clinical-theme .bg-surface,
+.clinical-theme .bg-surface-card,
+.clinical-theme .bg-surface-elevated {
+  background-color: #f8fafc;
+}
+
+.clinical-theme .text-slate-100,
+.clinical-theme .text-slate-200 {
+  color: #0f172a;
+}
+
+.clinical-theme .text-slate-300 {
+  color: #334155;
+}
+
+.clinical-theme .text-slate-400,
+.clinical-theme .text-slate-500 {
+  color: #64748b;
+}
+
+.clinical-theme .border-surface-border {
+  border-color: #e2e8f0;
+}
+
+.clinical-theme .btn-primary,
+.clinical-theme .btn-accent {
+  background: #059669;
+  box-shadow: 0 8px 18px rgba(5, 150, 105, 0.2);
+}
+
+.clinical-theme .btn-primary:hover,
+.clinical-theme .btn-accent:hover {
+  background: #047857;
+}
+
+.clinical-theme .btn-secondary {
+  background: #fff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.clinical-theme .btn-secondary:hover {
+  border-color: #10b981;
+  background: #ecfdf5;
+}
+
+.clinical-theme .section-title {
+  color: #0f172a;
+  letter-spacing: -0.04em;
+}
+
+.clinical-theme .section-subtitle {
+  color: #64748b;
+}
+
+.about-page {
+  background:
+    linear-gradient(180deg, #f8fffc 0%, #ffffff 28rem, #ffffff 100%);
+}
+
+.about-page .card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+.about-page .text-slate-50,
+.about-page .text-slate-100,
+.about-page .text-slate-200 {
+  color: #0f172a;
+}
+
+.about-page .text-slate-300 {
+  color: #334155;
+}
+
+.about-page .text-slate-400,
+.about-page .text-slate-500 {
+  color: #64748b;
+}
+
+.about-page .text-primary-300 {
+  color: #047857;
+}
+
+.about-page .text-accent-300,
+.about-page .text-accent-400 {
+  color: #059669;
+}
+
+.about-page .border-surface-border {
+  border-color: #e2e8f0;
+}
+
+.about-page .bg-surface,
+.about-page .bg-surface-card {
+  background-color: #f8fafc;
+}
+
+.about-page .bg-surface-card\/80 {
+  background-color: rgba(248, 250, 252, 0.8);
+}
+
+.about-page .bg-primary-500\/10 {
+  background-color: #ecfdf5;
+}
+
+.about-page .bg-primary-500\/\[0\.04\] {
+  background-color: #f0fdf4;
+}
+
+.about-page .border-primary-500\/20,
+.about-page .border-primary-500\/40 {
+  border-color: #a7f3d0;
+}
+
+.about-page .bg-primary-500\/15 {
+  background-color: #d1fae5;
+}
+
+.about-page .bg-gradient-to-br.from-primary-500\/10 {
+  background-image: linear-gradient(135deg, #ecfdf5, #ffffff 55%, #f0f9ff);
+}
+
+.about-page .disclaimer-box {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.about-page .disclaimer-box h2 {
+  color: #92400e;
+}
+
+.about-page .disclaimer-box .border-amber-500\/20 {
+  border-color: #fde68a;
+}
+
+.about-page .disclaimer-box .text-amber-200\/80 {
+  color: #a16207;
+}
+
+.landing-page {
+  background: #fff;
+  color: #0f172a;
+}
+
+.landing-page .landing-hero {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(16, 185, 129, 0.14), transparent 28rem),
+    radial-gradient(circle at 84% 72%, rgba(14, 165, 233, 0.12), transparent 28rem),
+    linear-gradient(180deg, #f0fdf9 0%, #ffffff 100%);
+}
+
+.landing-page .landing-hero .bg-surface-card {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.landing-page .landing-hero .border-surface-border {
+  border-color: #bbf7d0;
+}
+
+.landing-page .landing-hero .text-slate-400,
+.landing-page .text-slate-400 {
+  color: #64748b;
+}
+
+.landing-page .landing-hero .text-slate-600 {
+  color: #475569;
+}
+
+.landing-page .landing-hero .text-slate-100,
+.landing-page .text-slate-100 {
+  color: #0f172a;
+}
+
+.landing-page .landing-hero .bg-accent-gradient {
+  background-image: linear-gradient(90deg, #059669, #0891b2);
+}
+
+.landing-page .text-slate-100,
+.landing-page .text-slate-200 {
+  color: #0f172a;
+}
+
+.landing-page .card-hover {
+  background: #fff;
+  border-color: #e2e8f0;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+}
+
+.landing-page .card-hover:hover {
+  border-color: #a7f3d0;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
+}
+
+.landing-page .text-primary-400 {
+  color: #047857;
+}
+
+.landing-page .text-accent-400 {
+  color: #059669;
+}
+
+.landing-page .text-violet-400 {
+  color: #7c3aed;
+}
+
+.landing-page .text-amber-400 {
+  color: #d97706;
+}
+
+.landing-page .text-danger-400 {
+  color: #dc2626;
+}
+
+.landing-page .text-cyan-400 {
+  color: #0891b2;
+}
+
+.landing-page .bg-primary-500\/10 {
+  background-color: #ecfdf5;
+}
+
+.landing-page .bg-accent-500\/10 {
+  background-color: #ecfeff;
+}
+
+.landing-page .bg-violet-500\/10 {
+  background-color: #f5f3ff;
+}
+
+.landing-page .bg-amber-500\/10 {
+  background-color: #fffbeb;
+}
+
+.landing-page .bg-danger-500\/10 {
+  background-color: #fef2f2;
+}
+
+.landing-page .bg-cyan-500\/10 {
+  background-color: #ecfeff;
+}
+
+.landing-page .disclaimer-box {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
